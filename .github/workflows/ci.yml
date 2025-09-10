@@ -48,5 +48,4 @@ jobs:
         run: go mod download
 
       - name: Build Binary
-        run: go build -o server ./cmd/api
-        # This will now succeed because we have a valid main.go
+        run: go build -o server .
