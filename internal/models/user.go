@@ -13,9 +13,20 @@ type User struct {
     Weight        float64   `json:"weight"`
     ActivityLevel string    `json:"activity_level"`
     Goal          string    `json:"goal"`
+    ProgramID     int       `json:"program_id"`
     WeeklyBudget  float64   `json:"weekly_budget,omitempty"`
     CreatedAt     time.Time `json:"created_at"`
     UpdatedAt     time.Time `json:"updated_at"`
+}
+
+
+type UserProgram struct {
+    ID        int       `json:"id"`
+    UserID    string    `json:"user_id"`
+    ProgramID int       `json:"program_id"`
+    StartDate time.Time `json:"start_date"`
+    IsActive  bool      `json:"is_active"`
+    CreatedAt time.Time `json:"created_at"`
 }
 
 type UserPreferences struct {

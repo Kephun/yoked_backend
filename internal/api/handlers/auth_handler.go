@@ -31,6 +31,7 @@ type RegisterRequest struct {
     Weight          float64 `json:"weight" binding:"required,min=20,max=500"`
     ActivityLevel   string  `json:"activity_level" binding:"required,oneof=sedentary lightly_active moderately_active very_active extra_active"`
     Goal            string  `json:"goal" binding:"required,oneof=weight_loss muscle_gain maintenance endurance"`
+    ProgramID       int     `json:"program_id" binding:"required"`
     WeeklyBudget    float64 `json:"weekly_budget" binding:"min=0"`
 }
 
@@ -79,6 +80,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
         Weight:        req.Weight,
         ActivityLevel: req.ActivityLevel,
         Goal:          req.Goal,
+	ProgramID:     req.ProgramID,
         WeeklyBudget:  req.WeeklyBudget,
     }
 
@@ -86,6 +88,24 @@ func (h *AuthHandler) Register(c *gin.Context) {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user: " + err.Error()})
         return
     }
+
+
+    userProgram := &models.UserProgram{
+        UserID:    user.ID,
+        ProgramID: req.ProgramID,
+        StartDate: time.Now(),
+        IsActive:  true,
+    }
+
+
+    if err := h.userService.CreateUserProgram(c.Request.Context(), userProgram); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user program: " + err.Error()})
+        return
+    }
+
+
+
+
 
     // Generate JWT token
     token, err := middleware.GenerateJWT(user.ID, user.Email)

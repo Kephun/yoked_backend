@@ -12,6 +12,7 @@ import (
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
+	CreateUserProgram(ctx context.Context, userProgram *models.UserProgram) error
 	GetUserByID(ctx context.Context, id string) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
@@ -35,14 +36,14 @@ func NewUserRepository(db *pgxpool.Pool) UserRepository {
 func (r *userRepository) CreateUser(ctx context.Context, user *models.User) error {
 	query := `
 		INSERT INTO users (email, password_hash, name, age, sex, height, weight, 
-		                  activity_level, goal, weekly_budget, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		                  activity_level, goal, program_id, weekly_budget, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id
 	`
 
 	err := r.db.QueryRow(ctx, query,
 		user.Email, user.PasswordHash, user.Name, user.Age, user.Sex,
-		user.Height, user.Weight, user.ActivityLevel, user.Goal, user.WeeklyBudget,
+		user.Height, user.Weight, user.ActivityLevel, user.Goal, user.ProgramID, user.WeeklyBudget,
 		time.Now(), time.Now(),
 	).Scan(&user.ID)
 
@@ -53,11 +54,36 @@ func (r *userRepository) CreateUser(ctx context.Context, user *models.User) erro
 	return nil
 }
 
+
+
+func (r *userRepository) CreateUserProgram(ctx context.Context, userProgram *models.UserProgram) error {
+	query := `
+		INSERT INTO user_programs(user_id, program_id, start_date, is_active, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	err := r.db.QueryRow(ctx, query,
+		userProgram.UserID,
+		userProgram.ProgramID,
+		userProgram.StartDate,
+		userProgram.IsActive,
+		time.Now(),
+	).Scan(&userProgram.ID)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create user program: %w", err)
+	}
+
+	return nil
+}
+
+
 // GetUserByID retrieves a user by their ID
 func (r *userRepository) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, age, sex, height, weight, 
-		       activity_level, goal, weekly_budget, created_at, updated_at
+		       activity_level, goal, program_id, weekly_budget, created_at, updated_at
 		FROM users 
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -65,7 +91,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*models.Us
 	var user models.User
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Sex,
-		&user.Height, &user.Weight, &user.ActivityLevel, &user.Goal, &user.WeeklyBudget,
+		&user.Height, &user.Weight, &user.ActivityLevel, &user.Goal, &user.ProgramID, &user.WeeklyBudget,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 
@@ -80,7 +106,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*models.Us
 func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, age, sex, height, weight, 
-		       activity_level, goal, weekly_budget, created_at, updated_at
+		       activity_level, goal, program_id, weekly_budget, created_at, updated_at
 		FROM users 
 		WHERE email = $1 AND deleted_at IS NULL
 	`
@@ -88,7 +114,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	var user models.User
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Sex,
-		&user.Height, &user.Weight, &user.ActivityLevel, &user.Goal, &user.WeeklyBudget,
+		&user.Height, &user.Weight, &user.ActivityLevel, &user.Goal, &user.ProgramID, &user.WeeklyBudget,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 
@@ -104,13 +130,13 @@ func (r *userRepository) UpdateUser(ctx context.Context, user *models.User) erro
 	query := `
 		UPDATE users 
 		SET email = $2, name = $3, age = $4, sex = $5, height = $6, weight = $7,
-		    activity_level = $8, goal = $9, weekly_budget = $10, updated_at = $11
+		    activity_level = $8, goal = $9, program_id = $10, weekly_budget = $11, updated_at = $12
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 
 	result, err := r.db.Exec(ctx, query,
 		user.ID, user.Email, user.Name, user.Age, user.Sex, user.Height, user.Weight,
-		user.ActivityLevel, user.Goal, user.WeeklyBudget, time.Now(),
+		user.ActivityLevel, user.Goal, user.ProgramID, user.WeeklyBudget, time.Now(),
 	)
 
 	if err != nil {

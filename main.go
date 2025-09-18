@@ -22,15 +22,15 @@ func main() {
 
     // Initialize Repositories
     userRepo := repositories.NewUserRepository(database.GetPool())
-    workoutRepo := repositories.NewWorkoutRepository(database.GetPool())
+    programRepo := repositories.NewProgramRepository(database.GetPool())
 
     // Initialize Services
     userService := services.NewUserService(userRepo)
-    workoutService := services.NewWorkoutService(workoutRepo, userRepo)
+    programService := services.NewProgramService(programRepo, userRepo)
 
     // Initialize Handlers
     userHandler := handlers.NewUserHandler(userService)
-    workoutHandler := handlers.NewWorkoutHandler(workoutService)
+    programHandler := handlers.NewProgramHandler(programService, userService)
     authHandler := handlers.NewAuthHandler(userService)
 
     router := gin.Default()
@@ -45,6 +45,7 @@ func main() {
         public.POST("/auth/register", authHandler.Register)
         public.POST("/auth/login", authHandler.Login)
         public.GET("/health", healthCheck)
+	public.GET("/programs?goal=hypertrophy",programHandler.GetProgramsByGoal)
     }
 
     // Authenticated Routes - Requires JWT
@@ -65,34 +66,31 @@ func main() {
     		user.PUT("/me/password", userHandler.UpdatePassword)
     		user.GET("/me/stats", userHandler.GetUserStats)
 	}
+	//Program Routes
+	programs := authenticated.Group("/programs")
+	{
+		programs.POST("/assign", programHandler.AssignProgram)
+		programs.GET("/user/:user_id", programHandler.GetUserProgram)
 
+	}
 	// Workout Routes
 	workouts := authenticated.Group("/workouts")
 	{
-    		workouts.GET("", workoutHandler.GetWorkouts)
-    		workouts.POST("", workoutHandler.CreateWorkout)
-    		workouts.GET("/current", workoutHandler.GetCurrentWorkout)
-    		workouts.POST("/generate", workoutHandler.GenerateWorkout)
-    		workouts.GET("/:workout_id", workoutHandler.GetWorkoutDetails)
-    		workouts.GET("/:workout_id/sessions", workoutHandler.GetWorkoutSessions)
+    		workouts.POST("/start", programHandler.StartWorkoutSession)
+		workouts.POST("/:id/complete", programHandler.CompleteWorkoutSession)
+		workouts.GET("/history/:user_id", programHandler.GetWorkoutHistory)
+		workouts.GET("/next-weights", programHandler.GetNextWorkoutWeights)
     	}
-    	// Session routes
-    	sessions := workouts.Group("/sessions")
-    	{
-        	sessions.GET("/:session_id", workoutHandler.GetWorkoutSession)
-        	sessions.POST("/:session_id/start", workoutHandler.StartSession)
-        	sessions.POST("/:session_id/complete", workoutHandler.CompleteSession)
-        	sessions.GET("/:session_id/exercises", workoutHandler.GetSessionExercises)
-        	sessions.POST("/:session_id/exercises", workoutHandler.LogExercise)
-    	}
-    }
 
     // Start Server - Listening to ALL MUST CHANGE BEFORE PRODUCTION
     if err := router.Run("0.0.0.0:8080"); err != nil {
         log.Fatal("Failed to start server: ", err)
+        }
     }
 }
 
 func healthCheck(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 }
+
+

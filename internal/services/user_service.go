@@ -1,15 +1,17 @@
 package services
 
 import (
+    "fmt"    
     "context"
-    "fmt"
     "strings"
+
     "yoked_backend/internal/models"
     "yoked_backend/internal/db/repositories"
 )
 
 type UserService interface {
     CreateUser(ctx context.Context, user *models.User) error
+    CreateUserProgram(ctx context.Context, userProgram *models.UserProgram) error
     GetUserByID(ctx context.Context, userID string) (*models.User, error)
     GetUserByEmail(ctx context.Context, email string) (*models.User, error)
     UpdateUser(ctx context.Context, user *models.User) error
@@ -30,6 +32,10 @@ func NewUserService(userRepo repositories.UserRepository) UserService {
 
 func (s *userService) CreateUser(ctx context.Context, user *models.User) error {
     return s.userRepo.CreateUser(ctx, user)
+}
+
+func (s *userService) CreateUserProgram(ctx context.Context, userProgram *models.UserProgram) error {
+	return s.userRepo.CreateUserProgram(ctx, userProgram)
 }
 
 func (s *userService) GetUserByID(ctx context.Context, userID string) (*models.User, error) {
@@ -116,6 +122,10 @@ func (s *userService) validateAndApplyProfileUpdates(user *models.User, updates 
         case "goal":
             if goal, ok := value.(string); ok && validGoals[goal] {
                 user.Goal = goal
+            }
+	case "program_id":
+	    if program_id, ok := value.(int); ok && program_id > 0 {
+		user.ProgramID = program_id
             }
         case "activity_level":
             if activityLevel, ok := value.(string); ok && validActivityLevels[activityLevel] {
